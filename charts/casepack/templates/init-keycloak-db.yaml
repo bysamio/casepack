@@ -1,0 +1,45 @@
+{{- if and .Values.postgresql.enabled .Values.keycloak.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "casepack.fullname" . }}-init-keycloak-db
+  labels:
+    {{- include "casepack.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "casepack.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: init-db
+          image: bitnami/postgresql:17
+          command: ["sh", "-c"]
+          args:
+            - |
+              until PGPASSWORD=$POSTGRES_PASSWORD psql -h $DB_HOST -U postgres -c '\q' 2>/dev/null; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              PGPASSWORD=$POSTGRES_PASSWORD psql -h $DB_HOST -U postgres <<-EOSQL
+                SELECT 'CREATE DATABASE keycloak' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'keycloak')\gexec
+                DO \$\$ BEGIN
+                  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'keycloak') THEN
+                    CREATE USER keycloak WITH PASSWORD '{{ .Values.keycloak.database.password }}';
+                  END IF;
+                END \$\$;
+                GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
+                \c keycloak
+                GRANT ALL ON SCHEMA public TO keycloak;
+              EOSQL
+          env:
+            - name: DB_HOST
+              value: "{{ .Release.Name }}-postgresql"
+            - name: POSTGRES_PASSWORD
+              value: "{{ .Values.postgresql.auth.postgresPassword }}"
+{{- end }}

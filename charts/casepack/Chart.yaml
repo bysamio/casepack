@@ -1,0 +1,55 @@
+apiVersion: v2
+name: casepack
+description: CasePack — multi-tenant incident evidence management platform for MSPs. Deploys the full stack in one command.
+type: application
+version: 0.1.0
+appVersion: "0.3.1"
+home: https://github.com/bysamio/casepack
+icon: https://raw.githubusercontent.com/bysamio/charts/main/icons/casepack.png
+sources:
+  - https://github.com/bysamio/casepack
+  - https://github.com/bysamio/casepack-api
+keywords:
+  - casepack
+  - incident-management
+  - evidence
+  - nis2
+  - msp
+  - compliance
+  - multi-tenant
+  - keycloak
+  - minio
+  - self-host
+maintainers:
+  - name: bysamio
+    url: https://github.com/bysamio
+annotations:
+  artifacthub.io/license: Proprietary
+  artifacthub.io/category: security
+
+dependencies:
+  # ── Core Application ───────────────────────────────────────────
+  - name: casepack-api
+    version: "~0.3.0"
+    repository: "oci://ghcr.io/bysamio/charts"
+
+  # Uncomment when casepack-spa chart is published:
+  # - name: casepack-spa
+  #   version: "~0.1.0"
+  #   repository: "oci://ghcr.io/bysamio/charts"
+
+  # ── Infrastructure (optional — disable if using external services) ─
+  - name: postgresql
+    version: "~16.4.0"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    condition: postgresql.enabled
+
+  - name: keycloak
+    version: "~1.2.0"
+    repository: "oci://ghcr.io/bysamio/charts"
+    condition: keycloak.enabled
+
+  - name: minio
+    version: "~1.0.0"
+    repository: "oci://ghcr.io/bysamio/charts"
+    condition: minio.enabled
