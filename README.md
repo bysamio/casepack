@@ -130,7 +130,7 @@ For advanced deployments where you manage each component independently:
 | CasePack API | `oci://ghcr.io/bysamio/charts/casepack-api` | `0.3.x` |
 | Keycloak | `oci://ghcr.io/bysamio/charts/keycloak` | `1.2.x` |
 | MinIO | `oci://ghcr.io/bysamio/charts/minio` | `1.0.x` |
-| PostgreSQL | `oci://registry-1.docker.io/bitnamicharts/postgresql` | `16.4.x` |
+| PostgreSQL | `oci://ghcr.io/bysamio/charts/postgresql` | `2.0.x` |
 
 ## Documentation
 

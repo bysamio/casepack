@@ -38,7 +38,7 @@ This installs CasePack with all bundled infrastructure (PostgreSQL, Keycloak, Mi
 | Component | Chart | Version | Condition |
 |---|---|---|---|
 | CasePack API | `casepack-api` | `~0.3.0` | Always enabled |
-| PostgreSQL | `postgresql` (Bitnami) | `~16.4.0` | `postgresql.enabled` |
+| PostgreSQL | `postgresql` (BySamio) | `~2.0.1` | `postgresql.enabled` |
 | Keycloak | `keycloak` (BySamio) | `~1.2.0` | `keycloak.enabled` |
 | MinIO | `minio` (BySamio) | `~1.0.0` | `minio.enabled` |
 
@@ -159,7 +159,7 @@ helm install casepack oci://ghcr.io/bysamio/charts/casepack \
 
 ## Keycloak Database Init
 
-When both `postgresql.enabled` and `keycloak.enabled` are `true`, the chart deploys a `post-install` Job that creates the `keycloak` database and user in the bundled PostgreSQL instance. This is required because Bitnami PostgreSQL only creates a single database via `auth.database`.
+When both `postgresql.enabled` and `keycloak.enabled` are `true`, the chart deploys a `post-install` Job that creates the `keycloak` database and user in the bundled PostgreSQL instance. This is required because the PostgreSQL chart only creates a single database via `auth.database`.
 
 ## Upgrade
 
@@ -189,7 +189,7 @@ For advanced deployments where you manage each component independently:
 | CasePack API | `oci://ghcr.io/bysamio/charts/casepack-api` |
 | Keycloak | `oci://ghcr.io/bysamio/charts/keycloak` |
 | MinIO | `oci://ghcr.io/bysamio/charts/minio` |
-| PostgreSQL | `oci://registry-1.docker.io/bitnamicharts/postgresql` |
+| PostgreSQL | `oci://ghcr.io/bysamio/charts/postgresql` |
 
 ## Support
 

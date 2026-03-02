@@ -47,7 +47,7 @@ cd docker/ && docker compose up -d
 | CasePack SPA | `ghcr.io/bysamio/casepack-spa` | *(coming soon)* | — |
 | Keycloak | `ghcr.io/bysamio/keycloak:26.5.2-optimized` | `oci://ghcr.io/bysamio/charts/keycloak` | `1.2.x` |
 | MinIO | `minio/minio` | `oci://ghcr.io/bysamio/charts/minio` | `1.0.x` |
-| PostgreSQL | `postgres:17-alpine` / `bitnami/postgresql:17` | `oci://registry-1.docker.io/bitnamicharts/postgresql` | `16.4.x` |
+| PostgreSQL | `ghcr.io/bysamio/postgresql:17.7-alpine` | `oci://ghcr.io/bysamio/charts/postgresql` | `2.0.x` |
 
 ### BySamio Keycloak Image
 

@@ -40,8 +40,8 @@ dependencies:
 
   # ── Infrastructure (optional — disable if using external services) ─
   - name: postgresql
-    version: "~16.4.0"
-    repository: "oci://registry-1.docker.io/bitnamicharts"
+    version: "~2.0.0"
+    repository: "oci://ghcr.io/bysamio/charts"
     condition: postgresql.enabled
 
   - name: keycloak

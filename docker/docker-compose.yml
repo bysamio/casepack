@@ -12,7 +12,7 @@ services:
 
   # ── PostgreSQL ──────────────────────────────────────────────────
   postgres:
-    image: postgres:17-alpine
+    image: ghcr.io/bysamio/postgresql:17.7-alpine
     restart: unless-stopped
     ports:
       - "${DB_PORT:-5432}:5432"
