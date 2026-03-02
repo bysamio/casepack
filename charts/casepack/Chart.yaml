@@ -1,6 +1,8 @@
 apiVersion: v2
 name: casepack
-description: CasePack — multi-tenant incident evidence management platform for MSPs. Deploys the full stack in one command.
+description: >-
+  CasePack — multi-tenant incident evidence management platform for MSPs.
+  Deploys the full stack in one command.
 type: application
 version: 0.1.0
 appVersion: "0.3.1"

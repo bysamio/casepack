@@ -5,8 +5,10 @@ on:
     branches: [main]
     paths:
       - "charts/**"
+      - ".github/workflows/publish-chart.yml"
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: read
