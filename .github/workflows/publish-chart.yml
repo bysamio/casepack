@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -24,8 +26,37 @@ jobs:
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Determine chart version
+        id: version
+        run: |
+          CHART_VERSION=$(grep '^version:' charts/casepack/Chart.yaml | awk '{print $2}')
+          SHORT_SHA=$(git rev-parse --short HEAD)
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # Tag push → clean semver from the tag
+            TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "channel=stable" >> "$GITHUB_OUTPUT"
+            echo "📦 Release version: ${TAG_VERSION}"
+          else
+            # Main branch push → dev snapshot
+            DEV_VERSION="${CHART_VERSION}-dev.${SHORT_SHA}"
+            echo "version=${DEV_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "channel=dev" >> "$GITHUB_OUTPUT"
+            echo "📦 Dev version: ${DEV_VERSION}"
+          fi
+
+      - name: Set chart version
+        run: |
+          sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" charts/casepack/Chart.yaml
+          echo "Chart.yaml version set to: ${{ steps.version.outputs.version }}"
+          grep '^version:' charts/casepack/Chart.yaml
+
       - name: Update dependencies
         run: helm dependency update charts/casepack/
+
+      - name: Lint chart
+        run: helm lint charts/casepack/
 
       - name: Package chart
         run: helm package charts/casepack/ -d .helm-packages/
