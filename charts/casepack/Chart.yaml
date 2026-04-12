@@ -17,10 +17,9 @@ keywords:
   - evidence
   - nis2
   - msp
-  - compliance
   - multi-tenant
   - keycloak
-  - minio
+  - seaweedfs
   - self-host
 maintainers:
   - name: bysamio
@@ -35,10 +34,10 @@ dependencies:
     version: "~0.3.0"
     repository: "oci://ghcr.io/bysamio/charts"
 
-  # Uncomment when casepack-spa chart is published:
-  # - name: casepack-spa
-  #   version: "~0.1.0"
-  #   repository: "oci://ghcr.io/bysamio/charts"
+  - name: casepack-spa
+    version: "~0.1.0"
+    repository: "oci://ghcr.io/bysamio/charts"
+    condition: casepack-spa.enabled
 
   # ── Infrastructure (optional — disable if using external services) ─
   - name: postgresql
@@ -51,7 +50,7 @@ dependencies:
     repository: "oci://ghcr.io/bysamio/charts"
     condition: keycloak.enabled
 
-  - name: minio
+  - name: seaweedfs
     version: "~1.0.0"
     repository: "oci://ghcr.io/bysamio/charts"
-    condition: minio.enabled
+    condition: seaweedfs.enabled

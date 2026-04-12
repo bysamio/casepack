@@ -1,12 +1,14 @@
 # CasePack — Self-Host Docker Compose Stack
 # Usage:
 #   1. Copy .env.example to .env and fill in your values
-#   2. docker compose up -d
+#   2. Run ./activate.sh to activate your license
+#   3. docker compose up -d
 #
 # Default URLs:
 #   API:      http://localhost:8080
+#   SPA:      http://localhost:3000
 #   Keycloak: http://localhost:8081
-#   MinIO:    http://localhost:9001 (console)
+#   SeaweedFS: http://localhost:8333 (S3 gateway)
 
 services:
 
@@ -25,7 +27,9 @@ services:
       KC_DB_PASS: ${KC_DB_PASS:?Set KC_DB_PASS in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init-keycloak-db.sh:/docker-entrypoint-initdb.d/init-keycloak-db.sh:ro
+      - ./keycloak/init-keycloak-db.sh:/docker-entrypoint-initdb.d/init-keycloak-db.sh:ro
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-casepack}"]
       interval: 5s
@@ -51,6 +55,8 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASS:?Set KC_ADMIN_PASS in .env}
     volumes:
       - ./keycloak/casepack-realm.json:/opt/keycloak/data/import/casepack-realm.json:ro
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       postgres:
         condition: service_healthy
@@ -61,21 +67,19 @@ services:
       start_period: 60s
       retries: 10
 
-  # ── MinIO ───────────────────────────────────────────────────────
-  minio:
-    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
-    command: server /data --console-address ":9001"
+  # ── SeaweedFS (S3-compatible storage) ────────────────────────────
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    command: "server -s3 -s3.port=8333 -dir=/data -volume.max=0"
     restart: unless-stopped
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
-    environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in .env}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?Set S3_SECRET_KEY in .env}
+      - "${S3_PORT:-8333}:8333"
     volumes:
-      - miniodata:/data
+      - seaweeddata:/data
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "sh", "-c", "wget -q -O /dev/null http://localhost:9333/cluster/status || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,8 +88,13 @@ services:
   api:
     image: ghcr.io/bysamio/casepack-api:${CASEPACK_VERSION:-0.3.1}
     restart: unless-stopped
+    read_only: true
     ports:
       - "${API_PORT:-8080}:8080"
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
     environment:
       SERVER_PORT: "8080"
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-casepack}
@@ -93,40 +102,50 @@ services:
       DB_PASS: ${DB_PASS:?Set DB_PASS in .env}
       OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-http://localhost:8081/realms/casepack}
       OIDC_JWK_SET_URI: ${OIDC_JWK_SET_URI:-http://keycloak:8080/realms/casepack/protocol/openid-connect/certs}
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://seaweedfs:8333
       S3_REGION: ${S3_REGION:-us-east-1}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in .env}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?Set S3_SECRET_KEY in .env}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
       S3_BUCKET: ${S3_BUCKET:-casepack}
       S3_PATH_STYLE: "true"
       S3_AUTO_CREATE_BUCKET: "true"
-      CASEPACK_CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
-      CASEPACK_SWAGGER_PUBLIC: "${SWAGGER_PUBLIC:-false}"
-      CASEPACK_LICENSE_TOKEN: ${CASEPACK_LICENSE_TOKEN:-}
-      CASEPACK_LICENSE_PUBLIC_KEY: ${CASEPACK_LICENSE_PUBLIC_KEY:-}
+      CASEPACK_CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      CASEPACK_LICENSE_TOKEN_FILE: /run/secrets/license.jwt
+      CASEPACK_LICENSE_KEY_SOURCE: ${CASEPACK_LICENSE_KEY_SOURCE:-env}
+      CASEPACK_DEPLOYMENT_MODE: ${CASEPACK_DEPLOYMENT_MODE:-self_host}
+      CASEPACK_INSTALLATION_ID: ${CASEPACK_INSTALLATION_ID:-}
       JAVA_OPTS: "${JAVA_OPTS:--Xms256m -Xmx512m}"
+    volumes:
+      - ./license.jwt:/run/secrets/license.jwt:ro
     depends_on:
       postgres:
         condition: service_healthy
       keycloak:
         condition: service_healthy
-      minio:
+      seaweedfs:
         condition: service_healthy
 
-  # ── CasePack SPA (uncomment when image is published) ───────────
-  # spa:
-  #   image: ghcr.io/bysamio/casepack-spa:${CASEPACK_SPA_VERSION:-latest}
-  #   restart: unless-stopped
-  #   ports:
-  #     - "${SPA_PORT:-3000}:80"
-  #   environment:
-  #     VITE_API_URL: ${API_URL:-http://localhost:8080}
-  #     VITE_OIDC_AUTHORITY: ${OIDC_AUTHORITY:-http://localhost:8081/realms/casepack}
-  #     VITE_OIDC_CLIENT_ID: casepack-spa
-  #   depends_on:
-  #     api:
-  #       condition: service_started
+  # ── CasePack SPA ────────────────────────────────────────────────
+  spa:
+    image: ghcr.io/bysamio/casepack-spa:${CASEPACK_SPA_VERSION:-latest}
+    restart: unless-stopped
+    read_only: true
+    ports:
+      - "${SPA_PORT:-3000}:80"
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /run
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      VITE_API_URL: ${API_URL:-http://localhost:8080}
+      VITE_OIDC_AUTHORITY: ${OIDC_AUTHORITY:-http://localhost:8081/realms/casepack}
+      VITE_OIDC_CLIENT_ID: casepack-spa
+    depends_on:
+      api:
+        condition: service_started
 
 volumes:
   pgdata:
-  miniodata:
+  seaweeddata:

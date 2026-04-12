@@ -1,5 +1,5 @@
 # CasePack Umbrella Helm Chart — Default Values
-# Deploys the full CasePack stack: API, SPA, PostgreSQL, Keycloak, MinIO
+# Deploys the full CasePack stack: API, SPA, PostgreSQL, Keycloak, SeaweedFS
 #
 # Override per-subchart using the subchart key prefix:
 #   casepack-api.config.corsOrigins: "https://casepack.example.com"
@@ -8,7 +8,7 @@
 # For production, disable bundled infra and point to external services:
 #   postgresql.enabled: false
 #   keycloak.enabled: false
-#   minio.enabled: false
+#   seaweedfs.enabled: false
 
 # ─── Global ──────────────────────────────────────────────────────
 global:
@@ -33,7 +33,7 @@ casepack-api:
     forwardHeadersStrategy: "NATIVE"
     oidcIssuerUri: "http://casepack-keycloak:8080/realms/casepack"
     oidcJwkSetUri: ""
-    s3Endpoint: "http://casepack-minio:9000"
+    s3Endpoint: "http://casepack-seaweedfs:8333"
     s3Region: "us-east-1"
     s3Bucket: "casepack"
     s3PathStyle: "true"
@@ -54,7 +54,9 @@ casepack-api:
     webhookMaxPayload: "1048576"
     timelineEnabled: "true"
     corsOrigins: "http://localhost:5173"
-    swaggerPublic: "true"
+    deploymentMode: "self_host"
+    installationId: ""
+    licenseKeySource: "env"
     javaOpts: "-Xms256m -Xmx512m"
 
   secrets:
@@ -62,10 +64,9 @@ casepack-api:
     dbUrl: "jdbc:postgresql://casepack-postgresql:5432/casepack"
     dbUser: "casepack"
     dbPass: "casepack"                 # Override in production!
-    s3AccessKey: "minioadmin"
-    s3SecretKey: "minioadmin"
-    licenseToken: ""
-    licensePublicKey: ""
+    s3AccessKey: ""
+    s3SecretKey: ""
+    licenseTokenFile: ""
 
   ingress:
     enabled: false
@@ -87,26 +88,28 @@ casepack-api:
       memory: 768Mi
 
 # ═══════════════════════════════════════════════════════════════
-#  CasePack SPA (uncomment when chart is published)
+#  CasePack SPA
 # ═══════════════════════════════════════════════════════════════
-# casepack-spa:
-#   replicaCount: 1
-#   image:
-#     repository: ghcr.io/bysamio/casepack-spa
-#     tag: ""
-#   config:
-#     apiBaseUrl: "http://casepack-casepack-api:80"
-#     oidcAuthority: "http://casepack-keycloak:8080/realms/casepack"
-#     oidcClientId: "casepack-spa"
-#   ingress:
-#     enabled: false
-#     className: nginx
-#     hosts:
-#       - host: casepack.example.com
-#         paths:
-#           - path: /
-#             pathType: Prefix
-#     tls: []
+casepack-spa:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/bysamio/casepack-spa
+    tag: ""
+    pullPolicy: IfNotPresent
+  config:
+    apiBaseUrl: "http://casepack-casepack-api:80"
+    oidcAuthority: "http://casepack-keycloak:8080/realms/casepack"
+    oidcClientId: "casepack-spa"
+  ingress:
+    enabled: false
+    className: nginx
+    hosts:
+      - host: casepack.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
 
 # ═══════════════════════════════════════════════════════════════
 #  PostgreSQL (BySamio)
@@ -168,22 +171,19 @@ keycloak:
     tls: []
 
 # ═══════════════════════════════════════════════════════════════
-#  MinIO (BySamio chart)
+#  SeaweedFS (S3-compatible storage)
 # ═══════════════════════════════════════════════════════════════
-minio:
+seaweedfs:
   enabled: true
-  auth:
-    rootUser: minioadmin
-    rootPassword: minioadmin       # Override in production!
+  image:
+    repository: chrislusf/seaweedfs
+    tag: latest
+  s3:
+    enabled: true
+    port: 8333
   persistence:
     enabled: true
     size: 10Gi
-  initBuckets:
-    enabled: true
-    buckets:
-      - casepack
-  console:
-    enabled: true
   resources:
     requests:
       cpu: 100m

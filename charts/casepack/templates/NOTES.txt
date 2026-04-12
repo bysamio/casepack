@@ -8,6 +8,7 @@ Release:   {{ .Release.Name }}
 ── Deployed Components ────────────────────────────────────────
 
   ✓ CasePack API
+  ✓ CasePack SPA
 {{- if .Values.postgresql.enabled }}
   ✓ PostgreSQL (bundled)
 {{- else }}
@@ -18,28 +19,28 @@ Release:   {{ .Release.Name }}
 {{- else }}
   ○ Keycloak (external)
 {{- end }}
-{{- if .Values.minio.enabled }}
-  ✓ MinIO (bundled)
+{{- if .Values.seaweedfs.enabled }}
+  ✓ SeaweedFS (bundled)
 {{- else }}
-  ○ MinIO (external)
+  ○ SeaweedFS (external)
 {{- end }}
 
 ── Access the Services ────────────────────────────────────────
 
   CasePack API:
     kubectl port-forward svc/{{ .Release.Name }}-casepack-api 8080:80 -n {{ .Release.Namespace }}
-    → http://localhost:8080/swagger
+    → http://localhost:8080
 {{- if .Values.keycloak.enabled }}
 
   Keycloak Admin Console:
     kubectl port-forward svc/{{ .Release.Name }}-keycloak 8081:8080 -n {{ .Release.Namespace }}
     → http://localhost:8081
 {{- end }}
-{{- if .Values.minio.enabled }}
+{{- if .Values.seaweedfs.enabled }}
 
-  MinIO Console:
-    kubectl port-forward svc/{{ .Release.Name }}-minio 9001:9001 -n {{ .Release.Namespace }}
-    → http://localhost:9001
+  SeaweedFS S3 Gateway:
+    kubectl port-forward svc/{{ .Release.Name }}-seaweedfs 8333:8333 -n {{ .Release.Namespace }}
+    → http://localhost:8333
 {{- end }}
 
 ── Documentation ──────────────────────────────────────────────

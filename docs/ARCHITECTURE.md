@@ -22,17 +22,18 @@ CasePack supports two deployment methods:
 The umbrella chart at `charts/casepack/` deploys the full stack as subchart dependencies. Each subchart manages its own Kubernetes resources (Deployments, Services, ConfigMaps, Secrets).
 
 ```
-helm install casepack oci://ghcr.io/bysamio/charts/casepack
+helm repo add bysamio https://bysamio.github.io/charts/
+helm upgrade --install casepack bysamio/casepack
 ```
 
 **When to use:** Production Kubernetes clusters, managed Kubernetes (EKS, AKS, GKE), or on-prem K8s.
 
 ### 2. Docker Compose
 
-The Docker Compose stack at `docker/` provides a single-command deployment for non-Kubernetes environments.
+The Docker Compose stack provides a single-command deployment for non-Kubernetes environments.
 
 ```
-cd docker/ && docker compose up -d
+docker compose up -d
 ```
 
 **When to use:** Single-server deployments, VPS hosting, local development, or environments without Kubernetes.
@@ -44,9 +45,9 @@ cd docker/ && docker compose up -d
 | Service | Image | Helm Chart | Version |
 |---|---|---|---|
 | CasePack API | `ghcr.io/bysamio/casepack-api` | `oci://ghcr.io/bysamio/charts/casepack-api` | `0.3.x` |
-| CasePack SPA | `ghcr.io/bysamio/casepack-spa` | *(coming soon)* | — |
+| CasePack SPA | `ghcr.io/bysamio/casepack-spa` | `bysamio/casepack-spa` | `0.1.x` |
 | Keycloak | `ghcr.io/bysamio/keycloak:26.5.2-optimized` | `oci://ghcr.io/bysamio/charts/keycloak` | `1.2.x` |
-| MinIO | `minio/minio` | `oci://ghcr.io/bysamio/charts/minio` | `1.0.x` |
+| SeaweedFS | `chrislusf/seaweedfs` | `oci://ghcr.io/bysamio/charts/seaweedfs` | `1.0.x` |
 | PostgreSQL | `ghcr.io/bysamio/postgresql:17.7-alpine` | `oci://ghcr.io/bysamio/charts/postgresql` | `2.0.x` |
 
 ### BySamio Keycloak Image
@@ -55,9 +56,9 @@ cd docker/ && docker compose up -d
 
 - `casepack` realm
 - `casepack-spa` public client (authorization code + PKCE)
-- `casepack_admin` and `casepack_user` realm roles
+- `casepack_admin` and `user` realm roles
 - `tenant_id` protocol mapper (custom JWT claim)
-- Demo users: `demo` (casepack_user), `admin` (casepack_admin)
+- Demo users: `demo` (user + analyst), `admin` (casepack_admin)
 
 ---
 
@@ -71,7 +72,7 @@ Services communicate via Kubernetes DNS. With a release name of `casepack`:
 |---|---|---|
 | PostgreSQL | `casepack-postgresql` | `5432` |
 | Keycloak | `casepack-keycloak` | `8080` |
-| MinIO | `casepack-minio` | `9000` |
+| SeaweedFS | `casepack-seaweedfs` | `8333` |
 | CasePack API | `casepack-casepack-api` | `80` |
 
 ### Docker Compose
@@ -82,8 +83,9 @@ Services communicate via Docker Compose service names:
 |---|---|---|
 | PostgreSQL | `postgres` | `5432` |
 | Keycloak | `keycloak` | `8080` |
-| MinIO | `minio` | `9000` |
+| SeaweedFS | `seaweedfs` | `8333` |
 | CasePack API | `api` | `8080` |
+| CasePack SPA | `spa` | `80` |
 
 ---
 
@@ -97,7 +99,7 @@ CasePack API is a Spring Boot OAuth2 resource server. It validates JWTs issued b
 |---|---|---|
 | `sub` | Standard | User ID |
 | `tenant_id` | Custom attribute mapper | Tenant isolation |
-| `realm_access.roles` | Keycloak realm roles | Authorization (`casepack_admin`, `casepack_user`) |
+| `realm_access.roles` | Keycloak realm roles | Authorization (`casepack_admin`, `user`) |
 | `preferred_username` | Standard | Display name |
 | `email` | Standard | User email |
 
@@ -142,7 +144,8 @@ The production `docker-compose.yml` enforces required secrets using the `${VAR:?
 
 ```bash
 cp .env.example .env
-# Fill in DB_PASS, KC_DB_PASS, KC_ADMIN_PASS, S3_ACCESS_KEY, S3_SECRET_KEY
+# Fill in DB_PASS, KC_DB_PASS, KC_ADMIN_PASS
+# S3 credentials optional (SeaweedFS dev mode works without them)
 ```
 
 ### Helm (Kubernetes)
@@ -173,20 +176,65 @@ casepack-api:
 
 ## Production Hardening
 
-### Checklist
+See the [Deployment Guide](../README.md) for setup instructions.
 
-- [ ] **Disable bundled infra** — Use managed PostgreSQL, Keycloak, and S3
+### Quick Checklist
+
 - [ ] **Strong passwords** — Replace all default credentials
 - [ ] **TLS everywhere** — Enable Ingress TLS with cert-manager
-- [ ] **Disable Swagger** — Set `swaggerPublic: false`
 - [ ] **CORS lockdown** — Set `corsOrigins` to your exact domain(s)
 - [ ] **Resource limits** — Tune CPU/memory requests and limits
 - [ ] **Persistence** — Ensure PVCs use durable StorageClasses with backups
 - [ ] **Network policies** — Restrict inter-pod communication
-- [ ] **Keycloak production mode** — Set `keycloak.production: true` and configure hostname
-- [ ] **License token** — Apply your MSP Pro or Enterprise license
-- [ ] **Monitoring** — Set up health checks, metrics, and alerting
-- [ ] **Backup strategy** — Regular PostgreSQL and MinIO backups
+- [ ] **Container hardening** — `read_only`, `no-new-privileges` (default in compose)
+- [ ] **License activated** — Run `activate.sh` before first start
+- [ ] **Monitoring** — Health checks, disk alerts, license expiry notifications
+
+---
+
+## License System
+
+CasePack uses EdDSA-signed JWTs for licensing. Self-host instances require a valid license file to operate.
+
+### Activation Flow
+
+```
+Customer ─── purchase ──▶ Licensing Server
+   │                         │
+   │    activation email     │
+   │  (token + portal link)  │
+   ◀─────────────────────────┘
+   │
+   │    ./activate.sh
+   │    (token exchange)
+   │──────────────────────▶ POST /api/public/activate
+   │                         │
+   │    license.jwt +        │
+   │    installation ID      │
+   ◀─────────────────────────┘
+   │
+   │    docker compose up
+   └──▶ API loads license.jwt
+```
+
+### Access State Lifecycle
+
+When a license expires, the self-host instance follows a degradation cascade:
+
+| State | Behavior | Trigger |
+|---|---|---|
+| `ACTIVE` | Full access | Valid, non-expired license |
+| `GRACE` | Full access + warning banner | Expired, within 7-day grace period |
+| `READ_ONLY_EXPIRED` | Read-only, no new data | Grace period exhausted, within 30 days |
+| `EXPORT_ONLY` | Export only, no reads | 30+ days past grace |
+| `SUSPENDED` | No access | Administrative suspension |
+| `TERMINATED` | No access | Permanent termination |
+
+### Renewal
+
+1. Renew subscription at the licensing portal
+2. Download new `license.jwt` or run `./renew-license.sh`
+3. Restart the API: `docker compose restart api`
 
 ### PostgreSQL Init (Keycloak Database)
 

@@ -65,3 +65,18 @@ jobs:
 
       - name: Push to GHCR
         run: helm push .helm-packages/casepack-*.tgz oci://ghcr.io/bysamio/charts
+
+      # ── Publish to GitHub Pages Helm repo ────────────────────────
+      - name: Publish to bysamio/charts GitHub Pages
+        if: steps.version.outputs.channel == 'stable'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CHARTS_REPO_TOKEN }}
+          repository: bysamio/charts
+          event-type: publish-chart
+          client-payload: |
+            {
+              "chart": "casepack",
+              "version": "${{ steps.version.outputs.version }}",
+              "artifact_url": "oci://ghcr.io/bysamio/charts/casepack:${{ steps.version.outputs.version }}"
+            }
