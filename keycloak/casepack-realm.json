@@ -21,10 +21,6 @@
   "roles": {
     "realm": [
       {
-        "name": "casepack_admin",
-        "description": "Global platform admin"
-      },
-      {
         "name": "user",
         "description": "Regular user"
       }
@@ -151,6 +147,18 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "casepack-user-manager",
+      "name": "CasePack User Manager Service Account",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "casepack-user-manager-secret",
+      "protocol": "openid-connect"
     }
   ],
   "clientScopes": [
@@ -177,49 +185,80 @@
           }
         }
       ]
+    },
+    {
+      "name": "profile",
+      "description": "OpenID Connect scope for user profile claims",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "consent.screen.text": "${profileScopeConsentText}",
+        "display.on.consent.screen": "true",
+        "gui.order": "1"
+      }
+    },
+    {
+      "name": "email",
+      "description": "OpenID Connect scope for email claims",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "consent.screen.text": "${emailScopeConsentText}",
+        "display.on.consent.screen": "true",
+        "gui.order": "2"
+      }
+    },
+    {
+      "name": "roles",
+      "description": "OpenID Connect scope for realm and client roles",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "consent.screen.text": "${rolesScopeConsentText}",
+        "display.on.consent.screen": "true",
+        "gui.order": "3"
+      }
+    },
+    {
+      "name": "web-origins",
+      "description": "OpenID Connect scope for allowed web origins",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "consent.screen.text": "",
+        "display.on.consent.screen": "false",
+        "gui.order": ""
+      }
+    },
+    {
+      "name": "acr",
+      "description": "OpenID Connect scope for authentication context class reference",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false",
+        "gui.order": ""
+      }
+    },
+    {
+      "name": "microprofile-jwt",
+      "description": "MicroProfile JWT compatibility scope",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false",
+        "gui.order": ""
+      }
     }
   ],
   "users": [
     {
-      "username": "demo",
+      "username": "service-account-casepack-user-manager",
       "enabled": true,
-      "emailVerified": true,
-      "email": "demo@example.com",
-      "firstName": "Demo",
-      "lastName": "User",
-      "attributes": {
-        "tenant_id": ["b5e1f9d0-7b3a-4c2e-9f1a-6d8e4a2c3b01"]
-      },
-      "credentials": [
-        {
-          "type": "password",
-          "value": "demo",
-          "temporary": false
-        }
-      ],
-      "realmRoles": ["user"],
+      "serviceAccountClientId": "casepack-user-manager",
       "clientRoles": {
-        "casepack-spa": ["analyst"]
+        "realm-management": ["manage-users", "view-users"]
       }
-    },
-    {
-      "username": "admin",
-      "enabled": true,
-      "emailVerified": true,
-      "email": "admin@example.com",
-      "firstName": "Admin",
-      "lastName": "User",
-      "attributes": {
-        "tenant_id": ["00000000-0000-0000-0000-000000000000"]
-      },
-      "credentials": [
-        {
-          "type": "password",
-          "value": "admin",
-          "temporary": false
-        }
-      ],
-      "realmRoles": ["casepack_admin"]
     }
   ]
 }

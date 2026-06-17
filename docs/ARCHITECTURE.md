@@ -19,7 +19,7 @@ CasePack supports two deployment methods:
 
 ### 1. Helm Umbrella Chart (Kubernetes)
 
-The umbrella chart at `charts/casepack/` deploys the full stack as subchart dependencies. Each subchart manages its own Kubernetes resources (Deployments, Services, ConfigMaps, Secrets).
+The umbrella chart is maintained in [`bysamio/charts`](https://github.com/bysamio/charts/tree/main/casepack) and deploys the full stack as subchart dependencies. Each subchart manages its own Kubernetes resources (Deployments, Services, ConfigMaps, Secrets).
 
 ```
 helm repo add bysamio https://bysamio.github.io/charts/
@@ -56,9 +56,14 @@ docker compose up -d
 
 - `casepack` realm
 - `casepack-spa` public client (authorization code + PKCE)
-- `casepack_admin` and `user` realm roles
+- `user` realm role
+- `casepack-user-manager` service-account client for API-managed user creation
 - `tenant_id` protocol mapper (custom JWT claim)
-- Demo users: `demo` (user + analyst), `admin` (casepack_admin)
+
+The self-host realm does not import static human users or the SaaS-only
+`casepack_admin` super-admin role. Customer administration is represented by
+local CasePack `AppUser.accountRole=CASEPACK_ADMIN`, created through bootstrap
+or account administration.
 
 ---
 
@@ -70,9 +75,9 @@ Services communicate via Kubernetes DNS. With a release name of `casepack`:
 
 | Service | Kubernetes DNS | Port |
 |---|---|---|
-| PostgreSQL | `casepack-postgresql` | `5432` |
-| Keycloak | `casepack-keycloak` | `8080` |
-| SeaweedFS | `casepack-seaweedfs` | `8333` |
+| PostgreSQL | `casepack-postgresql-primary` | `5432` |
+| Keycloak | `casepack-keycloak` | `80` |
+| SeaweedFS S3 | `casepack-seaweedfs-s3` | `8333` |
 | CasePack API | `casepack-casepack-api` | `80` |
 
 ### Docker Compose
@@ -85,7 +90,7 @@ Services communicate via Docker Compose service names:
 | Keycloak | `keycloak` | `8080` |
 | SeaweedFS | `seaweedfs` | `8333` |
 | CasePack API | `api` | `8080` |
-| CasePack SPA | `spa` | `80` |
+| CasePack SPA | `spa` | `8080` |
 
 ---
 
@@ -99,7 +104,7 @@ CasePack API is a Spring Boot OAuth2 resource server. It validates JWTs issued b
 |---|---|---|
 | `sub` | Standard | User ID |
 | `tenant_id` | Custom attribute mapper | Tenant isolation |
-| `realm_access.roles` | Keycloak realm roles | Authorization (`casepack_admin`, `user`) |
+| `realm_access.roles` | Keycloak realm roles | Basic identity roles; customer admin is local `AppUser.accountRole` |
 | `preferred_username` | Standard | Display name |
 | `email` | Standard | User email |
 
@@ -133,6 +138,19 @@ casepack-api:
     oidcIssuerUri: "https://auth.example.com/realms/casepack"
     # oidcJwkSetUri defaults to {issuerUri}/protocol/openid-connect/certs
 ```
+
+## Object Storage And Presigned URLs
+
+The API uses two S3 endpoint concepts:
+
+| Variable | Purpose |
+|---|---|
+| `S3_ENDPOINT` | Internal object-storage endpoint used by the API for bucket checks, evidence verification, and export writes |
+| `S3_PUBLIC_ENDPOINT` | Optional browser-facing endpoint used only for presigned upload/download URLs |
+
+For local Docker, the default public endpoint is `http://casepack-s3.localhost:8333`, while the API still talks to `http://seaweedfs:8333` internally. For production, publish the S3-compatible gateway at a TLS hostname such as `https://s3.casepack.example.com` and set `S3_PUBLIC_ENDPOINT` to that URL.
+
+If `S3_PUBLIC_ENDPOINT` is blank, the API signs presigned URLs with `S3_ENDPOINT`.
 
 ---
 

@@ -1,0 +1,33 @@
+# Local Podman/macOS compatibility overrides.
+#
+# Use with:
+#   podman compose -f docker-compose.yml -f docker-compose.podman.yml up -d
+
+services:
+  keycloak:
+    healthcheck:
+      disable: true
+
+  seaweedfs:
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://seaweedfs:9333/cluster/status"]
+
+  api:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      seaweedfs:
+        condition: service_healthy
+
+  spa:
+    read_only: false
+    environment:
+      CASEPACK_API_BASE_URL: ${API_URL:-http://localhost:8080}
+      CASEPACK_OIDC_AUTHORITY: ${OIDC_AUTHORITY:-http://localhost:8081/realms/casepack}
+      CASEPACK_OIDC_CLIENT_ID: casepack-spa
+      CASEPACK_DEPLOYMENT_MODE: SELF_HOST
+      CASEPACK_LICENSING_PORTAL_URL: ${LICENSING_PORTAL_URL:-https://licensing.bysam.io/portal}
+    ports: !override
+      - "${SPA_PORT:-3000}:8080"

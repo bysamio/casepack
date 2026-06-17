@@ -3,17 +3,20 @@
 # Internal development files
 .internal/
 
-# Helm
-charts/casepack/charts/
-charts/casepack/Chart.lock
-.helm-packages/
-
 # Docker
 .env
+.env.bak
+.env.bak.*
+local-secrets/
 
 # License files (sensitive)
 license.jwt
+license_new.jwt
 *.jwt
+activation-token.txt
+activation-token*.txt
+activation.json
+activation.json.*
 
 # Dependencies
 node_modules/
@@ -118,3 +121,5 @@ casepack_umbrella_repo_agent_prompt.txt
 # Generated prompt artifacts
 .github/prompts/
 
+.agents/
+AGENTS.md

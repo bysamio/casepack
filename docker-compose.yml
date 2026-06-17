@@ -48,7 +48,7 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/${KC_DB_NAME:-keycloak}
       KC_DB_USERNAME: ${KC_DB_USER:-keycloak}
       KC_DB_PASSWORD: ${KC_DB_PASS:?Set KC_DB_PASS in .env}
-      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-localhost:8081}
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-http://localhost:8081}
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: "xforwarded"
       KEYCLOAK_ADMIN: ${KC_ADMIN_USER:-admin}
@@ -60,12 +60,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && timeout 2 cat <&3 | grep -q '\"status\":\"UP\"'"]
-      interval: 10s
-      timeout: 5s
-      start_period: 60s
-      retries: 10
+
+  # The optimized Keycloak image is distroless, so it has no shell/curl for
+  # an in-container healthcheck. Use a tiny waiter to gate API bootstrap.
+  keycloak-ready:
+    image: docker.io/curlimages/curl:8.16.0
+    restart: "no"
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - until curl -fsS http://keycloak:8080/realms/casepack/.well-known/openid-configuration >/dev/null; do echo 'Waiting for Keycloak...'; sleep 2; done
+    command: []
+    depends_on:
+      keycloak:
+        condition: service_started
 
   # ── SeaweedFS (S3-compatible storage) ────────────────────────────
   seaweedfs:
@@ -74,12 +82,15 @@ services:
     restart: unless-stopped
     ports:
       - "${S3_PORT:-8333}:8333"
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-admin}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-admin123456}
     volumes:
       - seaweeddata:/data
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "sh", "-c", "wget -q -O /dev/null http://localhost:9333/cluster/status || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O - http://$$(hostname -i):9333/cluster/status >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -91,6 +102,9 @@ services:
     read_only: true
     ports:
       - "${API_PORT:-8080}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "casepack-s3.localhost:host-gateway"
     tmpfs:
       - /tmp
     security_opt:
@@ -102,26 +116,41 @@ services:
       DB_PASS: ${DB_PASS:?Set DB_PASS in .env}
       OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-http://localhost:8081/realms/casepack}
       OIDC_JWK_SET_URI: ${OIDC_JWK_SET_URI:-http://keycloak:8080/realms/casepack/protocol/openid-connect/certs}
-      S3_ENDPOINT: http://seaweedfs:8333
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://seaweedfs:8333}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-}
       S3_REGION: ${S3_REGION:-us-east-1}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-admin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-admin123456}
       S3_BUCKET: ${S3_BUCKET:-casepack}
       S3_PATH_STYLE: "true"
       S3_AUTO_CREATE_BUCKET: "true"
       CASEPACK_CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       CASEPACK_LICENSE_TOKEN_FILE: /run/secrets/license.jwt
       CASEPACK_LICENSE_KEY_SOURCE: ${CASEPACK_LICENSE_KEY_SOURCE:-env}
+      CASEPACK_LICENSE_PUBLIC_KEY: ${CASEPACK_LICENSE_PUBLIC_KEY:-}
+      CASEPACK_LICENSE_JWKS_URL: ${CASEPACK_LICENSE_JWKS_URL:-}
       CASEPACK_DEPLOYMENT_MODE: ${CASEPACK_DEPLOYMENT_MODE:-self_host}
       CASEPACK_INSTALLATION_ID: ${CASEPACK_INSTALLATION_ID:-}
+      CASEPACK_ACTIVATION_FILE: /run/secrets/activation.json
+      CASEPACK_SELF_HOST_BOOTSTRAP_ENABLED: ${CASEPACK_SELF_HOST_BOOTSTRAP_ENABLED:-true}
+      CASEPACK_SELF_HOST_BOOTSTRAP_TENANT_NAME: ${CASEPACK_SELF_HOST_BOOTSTRAP_TENANT_NAME:-CasePack Workspace}
+      CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_EMAIL: ${CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_EMAIL:-}
+      CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_INITIAL_PASSWORD: ${CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_INITIAL_PASSWORD:-}
+      CASEPACK_KEYCLOAK_BASE_URL: ${CASEPACK_KEYCLOAK_BASE_URL:-http://keycloak:8080}
+      CASEPACK_KEYCLOAK_REALM: ${CASEPACK_KEYCLOAK_REALM:-casepack}
+      CASEPACK_KEYCLOAK_SPA_CLIENT_ID: ${CASEPACK_KEYCLOAK_SPA_CLIENT_ID:-casepack-spa}
+      CASEPACK_KEYCLOAK_SPA_REDIRECT_URI: ${CASEPACK_KEYCLOAK_SPA_REDIRECT_URI:-http://localhost:3000/auth/callback}
+      CASEPACK_KEYCLOAK_SA_CLIENT_ID: ${CASEPACK_KEYCLOAK_SA_CLIENT_ID:-casepack-user-manager}
+      CASEPACK_KEYCLOAK_SA_CLIENT_SECRET: ${CASEPACK_KEYCLOAK_SA_CLIENT_SECRET:-casepack-user-manager-secret}
       JAVA_OPTS: "${JAVA_OPTS:--Xms256m -Xmx512m}"
     volumes:
       - ./license.jwt:/run/secrets/license.jwt:ro
+      - ./activation.json:/run/secrets/activation.json:ro
     depends_on:
       postgres:
         condition: service_healthy
-      keycloak:
-        condition: service_healthy
+      keycloak-ready:
+        condition: service_completed_successfully
       seaweedfs:
         condition: service_healthy
 
@@ -129,9 +158,8 @@ services:
   spa:
     image: ghcr.io/bysamio/casepack-spa:${CASEPACK_SPA_VERSION:-latest}
     restart: unless-stopped
-    read_only: true
     ports:
-      - "${SPA_PORT:-3000}:80"
+      - "${SPA_PORT:-3000}:8080"
     tmpfs:
       - /tmp
       - /var/cache/nginx
@@ -139,9 +167,11 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      VITE_API_URL: ${API_URL:-http://localhost:8080}
-      VITE_OIDC_AUTHORITY: ${OIDC_AUTHORITY:-http://localhost:8081/realms/casepack}
-      VITE_OIDC_CLIENT_ID: casepack-spa
+      CASEPACK_API_BASE_URL: ${API_URL:-http://localhost:8080}
+      CASEPACK_OIDC_AUTHORITY: ${OIDC_AUTHORITY:-http://localhost:8081/realms/casepack}
+      CASEPACK_OIDC_CLIENT_ID: casepack-spa
+      CASEPACK_DEPLOYMENT_MODE: SELF_HOST
+      CASEPACK_LICENSING_PORTAL_URL: ${LICENSING_PORTAL_URL:-https://licensing.bysam.io/portal}
     depends_on:
       api:
         condition: service_started
