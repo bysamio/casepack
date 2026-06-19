@@ -2,18 +2,21 @@
 
 Turn incidents into audit-ready evidence packs — fast.
 
-CasePack helps MSPs run consistent incident reporting across customers, collect artifacts, and export a client/auditor-ready evidence pack in minutes. Built for NIS2-style deadlines. Self-host-first.
+CasePack is a multi-tenant incident management, documentation and evidence platform for MSPs. It keeps the complete response record — incident details, timeline events, evidence, NIS2 milestones, reports, and audit history — in one workspace, then turns it into client-, insurer-, regulator-, and auditor-ready outputs. Deploy it on your own infrastructure with Docker Compose or Kubernetes.
 
 ## Features
 
-- **Incident Reporting** — Structured incident workspace with severity, status, NIS2 flags, and inline search
-- **Evidence Collection** — Upload logs, screenshots, IOCs, and emails with full version history and tamper-evident audit trail
-- **NIS2 Milestone Tracking** — Automatic early warning, notification, and final report deadline milestones. Extensible to GDPR, DORA, and custom SLAs
-- **One-Click Evidence Pack Export** — PDF report, ZIP bundle, manifest, and audit log — ready to hand to clients or auditors
-- **PSA Integration** — Webhook intake from ConnectWise, HaloPSA, Autotask — auto-create incidents from PSA tickets
-- **Multi-Tenant** — Manage incidents across customer workspaces with tenant-level RBAC
-- **Audit Trail** — Every mutation logged with actor, action, entity, and timestamp
-- **Self-Host First** — Deploy on Docker or Kubernetes with your own storage and identity provider
+- **Incident Management** — Create, search, filter, track, and resolve incidents with severity and status, affected-user counts, root cause, and lessons learned
+- **Incident Timeline** — Build a chronological response record with categorized event, containment, eradication, recovery, and note entries
+- **Evidence Vault** — Attach logs, screenshots, IOCs, emails, and other files to incidents in S3-compatible object storage
+- **NIS2 Milestone Tracking** — Track early-warning, incident-notification, and final-report deadlines, with overdue visibility
+- **Incident Reports** — Preview and generate initial triage, executive summary, final evidence pack, and NIS2 notification reports from structured incident data
+- **Evidence Pack Export** — Produce PDF/ZIP deliverables with evidence, manifests, and audit history for clients, insurers, regulators, or auditors
+- **PSA Webhook Intake** — Create incidents from ConnectWise, HaloPSA, Autotask, or generic PSA webhook workflows
+- **Audit Log** — Keep a chronological record of incident, evidence, export, webhook, and milestone activity
+- **Multi-Tenant Workspaces** — Manage multiple customer organizations with tenant isolation and role-based access for owners, members, and viewers
+- **Identity and User Administration** — Authenticate through Keycloak/OIDC and manage users and tenant memberships from CasePack
+- **Self-Hosted Deployment** — Run the complete stack with Docker Compose or Kubernetes/Helm, backed by PostgreSQL and S3-compatible storage
 
 ## Architecture
 
@@ -182,6 +185,8 @@ CasePack uses a JWT-based license system. Self-host deployments require a valid 
 | Evidence Pack Export | PDF/ZIP compliance export |
 | Webhooks | PSA tool integration |
 | NIS2 Timelines | Regulatory milestone tracking |
+| Incident Timeline | Categorized chronological response record |
+| Incident Reports | Template-based report preview and generation |
 
 See [bysam.io](https://bysam.io) for licensing plans and pricing.
 
@@ -198,7 +203,7 @@ helm repo add bysamio https://bysamio.github.io/charts/
 | CasePack API | `bysamio/casepack-api` |
 | CasePack SPA | `bysamio/casepack-spa` |
 | Keycloak | `bysamio/keycloak` |
-| SeaweedFS | `bysamio/seaweedfs` |
+| SeaweedFS | `seaweedfs/seaweedfs` |
 | PostgreSQL | `bysamio/postgresql` |
 
 ## Documentation
