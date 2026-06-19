@@ -48,7 +48,7 @@ CasePack is a multi-tenant incident management, documentation and evidence platf
 ### Prerequisites
 
 - Docker Engine 24+ with Docker Compose v2
-- A CasePack license (purchase at [bysam.io](https://bysam.io))
+- A CasePack license (purchase at [casepack.app/pricing](https://casepack.app/pricing))
 - `curl`, `openssl`, and `python3` (for the activation and renewal scripts)
 
 ### 1. Clone and configure
@@ -210,6 +210,7 @@ helm repo add bysamio https://bysamio.github.io/charts/
 
 | Resource | Link |
 |---|---|
+| Official Documentation | [CasePack Docs](https://docs.casepack.app) |
 | Deployment Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Helm Chart Reference | [casepack chart README](https://github.com/bysamio/charts/tree/main/casepack#readme) |
 | BySamio Charts | [bysamio/charts](https://github.com/bysamio/charts) |
