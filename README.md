@@ -133,7 +133,7 @@ The script uses the refresh token in `activation.json`, validates the returned i
 | `DB_PASS` | Yes | PostgreSQL password |
 | `KC_DB_PASS` | Yes | Keycloak database password |
 | `KC_ADMIN_PASS` | Yes | Keycloak admin password |
-| `CASEPACK_API_VERSION` | No | API image tag (default: `0.3.1`) |
+| `CASEPACK_API_VERSION` | No | API image tag (default: `0.25.1`) |
 | `CORS_ORIGINS` | No | Allowed CORS origins (default: `http://localhost:3000`) |
 | `OIDC_ISSUER_URI` | No | Override for external Keycloak |
 | `S3_ENDPOINT` | No | Internal S3 endpoint used by the API (default: bundled SeaweedFS) |

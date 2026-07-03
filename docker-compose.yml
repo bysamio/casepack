@@ -97,7 +97,7 @@ services:
 
   # ── CasePack API ───────────────────────────────────────────────
   api:
-    image: ghcr.io/bysamio/casepack-api:${CASEPACK_API_VERSION:-0.3.1}
+    image: ghcr.io/bysamio/casepack-api:${CASEPACK_API_VERSION:-0.25.1}
     restart: unless-stopped
     read_only: true
     ports:
@@ -156,7 +156,7 @@ services:
 
   # ── CasePack SPA ────────────────────────────────────────────────
   spa:
-    image: ghcr.io/bysamio/casepack-spa:${CASEPACK_SPA_VERSION:-latest}
+    image: ghcr.io/bysamio/casepack-spa:${CASEPACK_SPA_VERSION:-0.23.0}
     restart: unless-stopped
     ports:
       - "${SPA_PORT:-3000}:8080"
