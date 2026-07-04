@@ -97,7 +97,7 @@ services:
 
   # ── CasePack API ───────────────────────────────────────────────
   api:
-    image: ghcr.io/bysamio/casepack-api:${CASEPACK_API_VERSION:-0.25.1}
+    image: ghcr.io/bysamio/casepack-api:${CASEPACK_API_VERSION:-0.26.0}
     restart: unless-stopped
     read_only: true
     ports:
