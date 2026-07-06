@@ -35,6 +35,12 @@ CasePack is a multi-tenant incident management, documentation and evidence platf
 │  │    API      │──── JDBC ────────────────────────┘              │
 │  └─────┬───────┘                                                 │
 │        │                                                         │
+│        ├──────────── HTML → PDF ───────────┐                    │
+│        │                                   ▼                    │
+│        │                             ┌─────────────┐             │
+│        │                             │ Gotenberg   │             │
+│        │                             │ PDF Render  │             │
+│        │                             └─────────────┘             │
 │        ▼                                                         │
 │  ┌─────────────┐                                                 │
 │  │  SeaweedFS  │                                                 │
@@ -83,6 +89,7 @@ docker compose up -d
 | CasePack SPA | http://localhost:3000 |
 | CasePack API | http://localhost:8080 |
 | Keycloak | http://localhost:8081 |
+| Gotenberg | Internal only |
 
 ### 4. Sign in as the bootstrap admin
 
@@ -138,6 +145,7 @@ The script uses the refresh token in `activation.json`, validates the returned i
 | `OIDC_ISSUER_URI` | No | Override for external Keycloak |
 | `S3_ENDPOINT` | No | Internal S3 endpoint used by the API (default: bundled SeaweedFS) |
 | `S3_PUBLIC_ENDPOINT` | No | Browser-facing S3 endpoint for presigned upload/download URLs |
+| `GOTENBERG_URL` | No | Internal Gotenberg URL used by the API for PDF report rendering |
 | `S3_ACCESS_KEY` | No | S3 credentials |
 | `S3_SECRET_KEY` | No | S3 credentials |
 
@@ -165,6 +173,7 @@ See [.env.example](.env.example) for the full template.
 |---|---|
 | `postgresql.enabled` | Deploy bundled PostgreSQL (`true`) |
 | `keycloak.enabled` | Deploy bundled Keycloak (`true`) |
+| `gotenberg.enabled` | Deploy bundled internal Gotenberg PDF renderer (`true`) |
 | `seaweedfs.enabled` | Deploy bundled SeaweedFS (`true`) |
 | `casepack-api.config.deploymentMode` | `self_host` for self-hosted instances |
 | `casepack-api.config.installationId` | Unique installation ID |
@@ -203,6 +212,7 @@ helm repo add bysamio https://bysamio.github.io/charts/
 | CasePack API | `bysamio/casepack-api` |
 | CasePack SPA | `bysamio/casepack-spa` |
 | Keycloak | `bysamio/keycloak` |
+| Gotenberg | `bysamio/gotenberg` |
 | SeaweedFS | `seaweedfs/seaweedfs` |
 | PostgreSQL | `bysamio/postgresql` |
 

@@ -9,6 +9,7 @@
 #   SPA:      http://localhost:3000
 #   Keycloak: http://localhost:8081
 #   SeaweedFS: http://localhost:8333 (S3 gateway)
+#   Gotenberg: internal only (PDF renderer; not published to host)
 
 services:
 
@@ -95,6 +96,28 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Gotenberg (internal PDF renderer) ─────────────────────────
+  gotenberg:
+    image: gotenberg/gotenberg:8-chromium
+    restart: unless-stopped
+    environment:
+      API_TIMEOUT: 60s
+      API_BODY_LIMIT: 50MB
+      API_DISABLE_DOWNLOAD_FROM: "true"
+      API_ENABLE_DEBUG_ROUTE: "false"
+      CHROMIUM_MAX_CONCURRENCY: "2"
+      CHROMIUM_MAX_QUEUE_SIZE: "20"
+      CHROMIUM_CLEAR_CACHE: "true"
+      CHROMIUM_CLEAR_COOKIES: "true"
+      WEBHOOK_DISABLE: "true"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── CasePack API ───────────────────────────────────────────────
   api:
     image: ghcr.io/bysamio/casepack-api:${CASEPACK_API_VERSION:-0.26.1}
@@ -125,6 +148,7 @@ services:
       S3_PATH_STYLE: "true"
       S3_AUTO_CREATE_BUCKET: "true"
       CASEPACK_CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      GOTENBERG_URL: ${GOTENBERG_URL:-http://gotenberg:3000}
       CASEPACK_LICENSE_TOKEN_FILE: /run/secrets/license.jwt
       CASEPACK_LICENSE_KEY_SOURCE: ${CASEPACK_LICENSE_KEY_SOURCE:-env}
       CASEPACK_LICENSE_PUBLIC_KEY: ${CASEPACK_LICENSE_PUBLIC_KEY:-}
@@ -152,6 +176,8 @@ services:
       keycloak-ready:
         condition: service_completed_successfully
       seaweedfs:
+        condition: service_healthy
+      gotenberg:
         condition: service_healthy
 
   # ── CasePack SPA ────────────────────────────────────────────────

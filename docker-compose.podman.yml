@@ -20,6 +20,8 @@ services:
         condition: service_started
       seaweedfs:
         condition: service_healthy
+      gotenberg:
+        condition: service_healthy
 
   spa:
     read_only: false
