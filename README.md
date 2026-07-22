@@ -91,6 +91,8 @@ docker compose up -d
 | Keycloak | http://localhost:8081 |
 | Gotenberg | Internal only |
 
+The Compose stack loads the official CasePack login and email theme into Keycloak before the identity service starts.
+
 ### 4. Sign in as the bootstrap admin
 
 The API bootstraps the local customer, first tenant, and first CasePack admin from the signed activation bundle. Log into the SPA at http://localhost:3000 with the bootstrap admin email associated with your license. When the activation response includes a bootstrap admin email, `activate.sh` prints the one-time temporary password and stores it in `.env` for the first API startup.
@@ -150,6 +152,30 @@ The script uses the refresh token in `activation.json`, validates the returned i
 | `S3_SECRET_KEY` | No | S3 credentials |
 
 For production browser uploads, set `S3_PUBLIC_ENDPOINT` to a DNS name users can reach, for example `https://s3.casepack.example.com`. Leave `S3_ENDPOINT` pointed at the internal object-storage service when the API should use private networking.
+
+### SMTP
+
+Configure Keycloak SMTP before the first startup when deploying CasePack for multiple users. Keycloak uses it to deliver invitations, password-setup links, and password-reset emails.
+
+Add your SMTP provider settings to `.env`:
+
+```dotenv
+KC_SMTP_HOST=smtp.example.com
+KC_SMTP_PORT=587
+KC_SMTP_FROM=noreply@example.com
+KC_SMTP_FROM_DISPLAY_NAME=CasePack
+KC_SMTP_AUTH=true
+KC_SMTP_USER=your-smtp-username
+KC_SMTP_PASSWORD=your-smtp-password
+KC_SMTP_STARTTLS=true
+KC_SMTP_SSL=false
+```
+
+Keep the real SMTP password only in `.env` and do not commit that file to source control.
+
+Port `587` with STARTTLS is the common configuration. For providers that require implicit TLS on port `465`, set `KC_SMTP_PORT=465`, `KC_SMTP_STARTTLS=false`, and `KC_SMTP_SSL=true`. For an unauthenticated private relay, set `KC_SMTP_AUTH=false` and leave the username and password blank. Do not enable STARTTLS and SSL at the same time.
+
+These values are applied when the `casepack` realm is imported on its first startup. For an existing installation, open the Keycloak Admin Console, select the **casepack** realm, go to **Realm settings → Email**, enter the same values, and use **Test connection**. See the [Keycloak email configuration guide](https://www.keycloak.org/docs/latest/server_admin/#configuring-email-for-a-realm) for provider-specific options.
 
 License-related variables are set automatically by `activate.sh`:
 

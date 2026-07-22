@@ -38,6 +38,15 @@ services:
       retries: 5
 
   # ── Keycloak ────────────────────────────────────────────────────
+  keycloak-theme:
+    image: ghcr.io/bysamio/keycloak-themes:0.5.0
+    command: ["sh", "-c", "rm -rf /target/casepack && cp -r /themes/casepack /target/"]
+    restart: "no"
+    volumes:
+      - keycloak-themes:/target
+    security_opt:
+      - no-new-privileges:true
+
   keycloak:
     image: ghcr.io/bysamio/keycloak:26.7.0-optimized
     command: start --optimized --import-realm --http-port=8080
@@ -54,13 +63,25 @@ services:
       KC_PROXY_HEADERS: "xforwarded"
       KEYCLOAK_ADMIN: ${KC_ADMIN_USER:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASS:?Set KC_ADMIN_PASS in .env}
+      KC_SMTP_HOST: "${KC_SMTP_HOST:-}"
+      KC_SMTP_PORT: "${KC_SMTP_PORT:-587}"
+      KC_SMTP_FROM: "${KC_SMTP_FROM:-}"
+      KC_SMTP_FROM_DISPLAY_NAME: "${KC_SMTP_FROM_DISPLAY_NAME:-CasePack}"
+      KC_SMTP_AUTH: "${KC_SMTP_AUTH:-true}"
+      KC_SMTP_USER: "${KC_SMTP_USER:-}"
+      KC_SMTP_PASSWORD: "${KC_SMTP_PASSWORD:-}"
+      KC_SMTP_STARTTLS: "${KC_SMTP_STARTTLS:-true}"
+      KC_SMTP_SSL: "${KC_SMTP_SSL:-false}"
     volumes:
       - ./keycloak/casepack-realm.json:/opt/keycloak/data/import/casepack-realm.json:ro
+      - keycloak-themes:/opt/keycloak/themes:ro
     security_opt:
       - no-new-privileges:true
     depends_on:
       postgres:
         condition: service_healthy
+      keycloak-theme:
+        condition: service_completed_successfully
 
   # The optimized Keycloak image is distroless, so it has no shell/curl for
   # an in-container healthcheck. Use a tiny waiter to gate API bootstrap.
@@ -166,6 +187,7 @@ services:
       CASEPACK_KEYCLOAK_SPA_REDIRECT_URI: ${CASEPACK_KEYCLOAK_SPA_REDIRECT_URI:-http://localhost:3000/auth/callback}
       CASEPACK_KEYCLOAK_SA_CLIENT_ID: ${CASEPACK_KEYCLOAK_SA_CLIENT_ID:-casepack-user-manager}
       CASEPACK_KEYCLOAK_SA_CLIENT_SECRET: ${CASEPACK_KEYCLOAK_SA_CLIENT_SECRET:-casepack-user-manager-secret}
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
       JAVA_OPTS: "${JAVA_OPTS:--Xms256m -Xmx512m}"
     volumes:
       - ./license.jwt:/run/secrets/license.jwt:ro
@@ -205,3 +227,4 @@ services:
 volumes:
   pgdata:
   seaweeddata:
+  keycloak-themes:
