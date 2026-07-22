@@ -39,7 +39,7 @@ services:
 
   # ── Keycloak ────────────────────────────────────────────────────
   keycloak:
-    image: ghcr.io/bysamio/keycloak:26.5.2-optimized
+    image: ghcr.io/bysamio/keycloak:26.7.0-optimized
     command: start --optimized --import-realm --http-port=8080
     restart: unless-stopped
     ports:

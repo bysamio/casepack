@@ -46,13 +46,13 @@ docker compose up -d
 |---|---|---|---|
 | CasePack API | `ghcr.io/bysamio/casepack-api` | `oci://ghcr.io/bysamio/charts/casepack-api` | `0.3.x` |
 | CasePack SPA | `ghcr.io/bysamio/casepack-spa` | `bysamio/casepack-spa` | `0.1.x` |
-| Keycloak | `ghcr.io/bysamio/keycloak:26.5.2-optimized` | `oci://ghcr.io/bysamio/charts/keycloak` | `1.2.x` |
+| Keycloak | `ghcr.io/bysamio/keycloak:26.7.0-optimized` | `oci://ghcr.io/bysamio/charts/keycloak` | `1.2.x` |
 | SeaweedFS | `chrislusf/seaweedfs` | `oci://ghcr.io/bysamio/charts/seaweedfs` | `1.0.x` |
 | PostgreSQL | `ghcr.io/bysamio/postgresql:17.7-alpine` | `oci://ghcr.io/bysamio/charts/postgresql` | `2.0.x` |
 
 ### BySamio Keycloak Image
 
-`ghcr.io/bysamio/keycloak:26.5.2-optimized` is a custom build of Keycloak 26.5.2. The `--import-realm` flag imports `casepack-realm.json` on first start, configuring:
+`ghcr.io/bysamio/keycloak:26.7.0-optimized` is a custom build of Keycloak 26.5.2. The `--import-realm` flag imports `casepack-realm.json` on first start, configuring:
 
 - `casepack` realm
 - `casepack-spa` public client (authorization code + PKCE)
