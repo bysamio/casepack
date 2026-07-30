@@ -2,7 +2,7 @@
 
 Turn incidents into audit-ready evidence packs — fast.
 
-CasePack is a multi-tenant incident management, documentation and evidence platform for MSPs. It keeps the complete response record — incident details, timeline events, evidence, NIS2 milestones, reports, and audit history — in one workspace, then turns it into client-, insurer-, regulator-, and auditor-ready outputs. Deploy it on your own infrastructure with Docker Compose or Kubernetes.
+CasePack is a multi-tenant incident management, documentation and evidence platform for MSPs. It keeps the complete response record — incident details, timeline events, evidence, NIS2 milestones, reports, and audit history — in one workspace, then turns it into client-, insurer-, regulator-, and auditor-ready outputs. The private self-host preview supports Docker Compose or compatible Podman Compose; Kubernetes remains demand-gated.
 
 ## Features
 
@@ -16,7 +16,7 @@ CasePack is a multi-tenant incident management, documentation and evidence platf
 - **Audit Log** — Keep a chronological record of incident, evidence, export, webhook, and milestone activity
 - **Multi-Tenant Workspaces** — Manage multiple customer organizations with tenant isolation and role-based access for owners, members, and viewers
 - **Identity and User Administration** — Authenticate through Keycloak/OIDC and manage users and tenant memberships from CasePack
-- **Self-Hosted Deployment** — Run the complete stack with Docker Compose or Kubernetes/Helm, backed by PostgreSQL and S3-compatible storage
+- **Self-Hosted Design-Partner Preview** — Run the supported single-API Docker Compose/Podman profile on customer-operated PostgreSQL and S3-compatible storage
 
 ## Architecture
 
@@ -49,89 +49,43 @@ CasePack is a multi-tenant incident management, documentation and evidence platf
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start (Self-Host)
+## Self-Host Preview Publication Gate
 
-### Prerequisites
+The Compose/Podman wrapper, API-owned state volume, and Connected enrollment
+scripts are implemented here for engineering verification. Public installation
+commands are intentionally withheld until clean install, upgrade, rollback,
+restore, state-loss, and licensing-outage canaries pass against a signed
+compatibility set.
 
-- Docker Engine 24+ with Docker Compose v2
-- A CasePack license (purchase at [casepack.app/pricing](https://casepack.app/pricing))
-- `curl`, `openssl`, and `python3` (for the activation and renewal scripts)
+Accepted design partners receive the pinned operator runbook during onboarding.
+It requires Docker Engine 24+ with Compose v2 or a compatible Podman Compose
+setup, one short-lived enrollment code for the assigned deployment slot, and
+durable encrypted backups. Enrollment reads the code from a protected prompt
+or owner-readable file; it is never accepted as a command-line value or stored
+in `.env`.
 
-### 1. Clone and configure
+The API image creates and exclusively owns the durable installation ID,
+Ed25519 key, state checksum, and current credential in the `licensing-state`
+volume. The first customer, workspace, and administrator are bootstrapped only
+after that key-bound credential verifies.
 
-```bash
-git clone https://github.com/bysamio/casepack.git
-cd casepack
-cp .env.example .env
-```
+### Kubernetes/Helm
 
-Edit `.env` and set the required passwords:
-- `DB_PASS` — PostgreSQL password
-- `KC_DB_PASS` — Keycloak database password
-- `KC_ADMIN_PASS` — Keycloak admin password
-
-### 2. Activate your license
-
-```bash
-./activate.sh <activation-token>
-```
-
-This exchanges your activation token for the instance license and bootstrap files used by the self-host stack.
-
-### 3. Start CasePack
-
-```bash
-docker compose up -d
-```
-
-| Service | URL |
-|---|---|
-| CasePack SPA | http://localhost:3000 |
-| CasePack API | http://localhost:8080 |
-| Keycloak | http://localhost:8081 |
-| Gotenberg | Internal only |
-
-The Compose stack loads the official CasePack login and email theme into Keycloak before the identity service starts.
-
-### 4. Sign in as the bootstrap admin
-
-The API bootstraps the local customer, first tenant, and first CasePack admin from the signed activation bundle. Log into the SPA at http://localhost:3000 with the bootstrap admin email associated with your license. When the activation response includes a bootstrap admin email, `activate.sh` prints the one-time temporary password and stores it in `.env` for the first API startup.
-
-After bootstrap, create additional users from CasePack account administration. Creating users directly in Keycloak is not enough for regular users because the API requires explicit local `AppUser` records and tenant memberships.
-
-### Helm (Kubernetes)
-
-Add the BySamio Helm repository:
-
-```bash
-helm repo add bysamio https://bysamio.github.io/charts/
-helm repo update
-```
-
-Deploy the full stack:
-
-```bash
-helm upgrade --install casepack bysamio/casepack \
-  --namespace casepack \
-  --create-namespace \
-  --values values.yaml
-```
-
-See the [chart documentation](https://github.com/bysamio/charts/tree/main/casepack#readme) for production configuration.
+The Connected pilot currently supports one API replica in the
+Compose/Podman profile. Helm remains demand-gated until a design partner selects
+that deployment profile and its state-volume, recovery, upgrade, and rollback
+canary passes. Existing charts are not a promise of Connected-pilot support.
 
 ## License Renewal
 
-When your license is about to expire, renew your subscription in the [licensing portal](https://licensing.bysam.io/portal). Then run:
+Connected deployments refresh their key-bound credential every 24 hours with
+per-deployment jitter. The private, pinned operator runbook includes explicit
+refresh and diagnostic procedures.
 
-```bash
-./renew-license.sh
-```
-
-The script uses the refresh token in `activation.json`, validates the returned instance-bound JWT, replaces `license.jwt` atomically, keeps a backup, and restarts the API. For air-gapped/manual renewal, download a license JWT from the portal and run:
-
-```bash
-./renew-license.sh --file ./license.jwt
-```
+The API signs a fresh proof with its non-exported deployment key, strictly
+verifies the returned EdDSA credential against the offline issuer trust set,
+rejects sequence rollback, and atomically updates its protected state. This
+preview does not claim air-gapped operation.
 
 ## Configuration
 
@@ -142,7 +96,7 @@ The script uses the refresh token in `activation.json`, validates the returned i
 | `DB_PASS` | Yes | PostgreSQL password |
 | `KC_DB_PASS` | Yes | Keycloak database password |
 | `KC_ADMIN_PASS` | Yes | Keycloak admin password |
-| `CASEPACK_API_VERSION` | No | API image tag (default: `0.30.0`) |
+| `CASEPACK_API_VERSION` | No | API image tag (default: `0.31.0`) |
 | `CORS_ORIGINS` | No | Allowed CORS origins (default: `http://localhost:3000`) |
 | `OIDC_ISSUER_URI` | No | Override for external Keycloak |
 | `S3_ENDPOINT` | No | Internal S3 endpoint used by the API (default: bundled SeaweedFS) |
@@ -177,23 +131,23 @@ Port `587` with STARTTLS is the common configuration. For providers that require
 
 These values are applied when the `casepack` realm is imported on its first startup. For an existing installation, open the Keycloak Admin Console, select the **casepack** realm, go to **Realm settings → Email**, enter the same values, and use **Test connection**. See the [Keycloak email configuration guide](https://www.keycloak.org/docs/latest/server_admin/#configuring-email-for-a-realm) for provider-specific options.
 
-License-related variables are set automatically by `activate.sh`:
+Connected licensing and bootstrap variables are configured before enrollment:
 
 | Variable | Description |
 |---|---|
 | `CASEPACK_DEPLOYMENT_MODE` | `self_host` (set by activate.sh) |
-| `CASEPACK_INSTALLATION_ID` | Unique instance ID (set by activate.sh) |
-| `CASEPACK_LICENSE_TOKEN_FILE` | Mounted license path inside the API container |
-| `CASEPACK_LICENSE_KEY_SOURCE` | `jwks` or `env` (set by activate.sh) |
-| `CASEPACK_LICENSE_JWKS_URL` | Licensing JWKS URL when using remote key verification |
-| `CASEPACK_ACTIVATION_FILE` | Mounted activation bundle path inside the API container |
+| `CASEPACK_LICENSE_PUBLIC_KEY` | Base64URL-encoded, pinned offline issuer JWK supplied during design-partner onboarding |
+| `LICENSING_API_URL` | Single HTTPS Connected licensing origin |
 | `CASEPACK_SELF_HOST_BOOTSTRAP_ENABLED` | Enables idempotent first-run customer/tenant/admin bootstrap |
-| `CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_EMAIL` | Bootstrap admin email from activation, when available |
-| `CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_INITIAL_PASSWORD` | One-time temporary password generated by `activate.sh` |
+| `CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_EMAIL` | First local CasePack admin email |
+| `CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_INITIAL_PASSWORD` | One-time temporary password; rotate after first login |
 
 See [.env.example](.env.example) for the full template.
 
-### Key Helm Values
+### Helm Values (Engineering Reference Only)
+
+The chart has not completed the Connected-pilot canary and is not a supported
+customer profile. These values are retained for future engineering work:
 
 | Parameter | Description |
 |---|---|
@@ -210,7 +164,19 @@ See [casepack chart README](https://github.com/bysamio/charts/tree/main/casepack
 
 ## Licensing
 
-CasePack uses a JWT-based license system. Self-host deployments require a valid license — without one, the API will not start.
+CasePack Connected V1 separates one commercial entitlement from up to two
+deployment identities (primary and recovery/test). Credential refreshes are
+internal revisions, not additional licenses. A proven-empty deployment without
+an enrollment enters `SETUP`; a populated deployment with missing, corrupt,
+expired, revoked, or unrestored state enters `RECOVERY_READ_EXPORT`, preserving
+authenticated reads and complete export while ordinary writes are blocked.
+
+Connected V1 contacts only the configured licensing origin and sends the
+deployment identity, key thumbprint, proof/challenge metadata, product version,
+and deployment profile. It does not send incidents, evidence, tenants, users,
+IdP configuration, storage configuration, or workflow content. A valid
+credential provides up to 30 days of continuity; revocation and cloned-volume
+enforcement can therefore lag until that credential expires.
 
 | Feature | Description |
 |---|---|
@@ -225,13 +191,12 @@ CasePack uses a JWT-based license system. Self-host deployments require a valid 
 
 See [bysam.io](https://bysam.io) for licensing plans and pricing.
 
-## Standalone Charts
+## Standalone Charts (Not Part of the Connected Preview)
 
-For advanced deployments where you manage each component independently, all charts are available from the `bysamio` Helm repo:
-
-```bash
-helm repo add bysamio https://bysamio.github.io/charts/
-```
+Charts may exist in the `bysamio` repository, but their presence is not a
+support or compatibility promise for Connected licensing. Repository and
+installation commands stay unpublished until Helm passes its separate
+supportability gate.
 
 | Component | Chart Name |
 |---|---|

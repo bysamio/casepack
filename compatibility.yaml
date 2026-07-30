@@ -1,0 +1,20 @@
+schemaVersion: 1
+status: preview-unverified
+profile: compose-podman-single-api
+releases:
+  casepackApi: 0.31.0
+  casepackSpa: 0.29.0
+  connectedProtocol: v1
+constraints:
+  apiReplicas: 1
+  deploymentSlots:
+    - PRIMARY
+    - RECOVERY_TEST
+  stateOwner: casepack-api
+  statePath: /var/lib/casepack/licensing
+verification:
+  cleanInstall: pending
+  redeployIdentityPersistence: pending
+  backupRestoreReconciliation: pending
+  rollback: pending
+  imageDigests: pending-release-build

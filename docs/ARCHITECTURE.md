@@ -1,6 +1,10 @@
 # CasePack — Deployment Architecture
 
-This document covers the deployment architecture for the CasePack platform, including both Helm (Kubernetes) and Docker Compose deployment models.
+This document covers the current CasePack self-host design-partner preview.
+Docker Compose/compatible Podman Compose with one API replica is the supported
+Connected profile. Existing Helm artifacts are retained for engineering work
+but are not a customer-support promise until their state, recovery, upgrade,
+and rollback canary passes.
 
 ## Table of Contents
 
@@ -13,30 +17,27 @@ This document covers the deployment architecture for the CasePack platform, incl
 
 ---
 
-## Dual Deployment Model
+## Deployment Profiles
 
-CasePack supports two deployment methods:
+CasePack has two deployment implementations, but only one current preview
+profile:
 
-### 1. Helm Umbrella Chart (Kubernetes)
+### 1. Docker Compose — Current Preview
 
-The umbrella chart is maintained in [`bysamio/charts`](https://github.com/bysamio/charts/tree/main/casepack) and deploys the full stack as subchart dependencies. Each subchart manages its own Kubernetes resources (Deployments, Services, ConfigMaps, Secrets).
+The Docker Compose stack is the deployment reference for non-Kubernetes
+environments. Installation, enrollment, and recovery commands remain in the
+private design-partner runbook until the restore/upgrade canary and release
+approval are complete.
 
-```
-helm repo add bysamio https://bysamio.github.io/charts/
-helm upgrade --install casepack bysamio/casepack
-```
+**When to use:** Private design-partner preview on a single customer-operated
+host. One API replica is enforced by support scope.
 
-**When to use:** Production Kubernetes clusters, managed Kubernetes (EKS, AKS, GKE), or on-prem K8s.
+### 2. Helm Umbrella Chart — Demand-Gated
 
-### 2. Docker Compose
-
-The Docker Compose stack provides a single-command deployment for non-Kubernetes environments.
-
-```
-docker compose up -d
-```
-
-**When to use:** Single-server deployments, VPS hosting, local development, or environments without Kubernetes.
+The umbrella chart remains in
+[`bysamio/charts`](https://github.com/bysamio/charts/tree/main/casepack), but
+Connected enrollment, mutable-state PVC ownership, restore reconciliation, and
+rollback have not completed a partner canary. Do not offer it as supported.
 
 ---
 
@@ -160,27 +161,16 @@ If `S3_PUBLIC_ENDPOINT` is blank, the API signs presigned URLs with `S3_ENDPOINT
 
 The production `docker-compose.yml` enforces required secrets using the `${VAR:?message}` syntax. No credentials are hardcoded — they must be set in `.env`.
 
-```bash
-cp .env.example .env
-# Fill in DB_PASS, KC_DB_PASS, KC_ADMIN_PASS
-# S3 credentials optional (SeaweedFS dev mode works without them)
-```
+Environment-file preparation and secret-generation steps remain in the private
+design-partner runbook until the deployment canary and security review pass.
 
 ### Helm (Kubernetes)
 
-For quickstart, inline values in `values.yaml` provide default credentials. For production:
-
-1. **Create a Kubernetes Secret** with your credentials
-2. **Reference it** via `casepack-api.secrets.existingSecret`
-3. **Disable inline secrets** (the existingSecret takes precedence)
-
-```bash
-kubectl create secret generic casepack-api-secrets \
-  --namespace casepack \
-  --from-literal=DB_PASS=your-db-password \
-  --from-literal=S3_ACCESS_KEY=your-access-key \
-  --from-literal=S3_SECRET_KEY=your-secret-key
-```
+Helm is demand-gated and is not part of the Connected preview. Inline sample
+credentials are development-only. A future supported profile must use
+externally managed Kubernetes Secrets and pass enrollment, state ownership,
+backup/restore, upgrade, rollback, and multi-replica tests before its operator
+commands are published.
 
 For GitOps workflows, use Sealed Secrets or external secret operators:
 
@@ -205,54 +195,59 @@ See the [Deployment Guide](../README.md) for setup instructions.
 - [ ] **Persistence** — Ensure PVCs use durable StorageClasses with backups
 - [ ] **Network policies** — Restrict inter-pod communication
 - [ ] **Container hardening** — `read_only`, `no-new-privileges` (default in compose)
-- [ ] **License activated** — Run `activate.sh` before first start
+- [ ] **Deployment enrolled** — Follow the pinned private runbook before first
+      start and keep the `licensing-state` volume durable
 - [ ] **Monitoring** — Health checks, disk alerts, license expiry notifications
 
 ---
 
 ## License System
 
-CasePack uses EdDSA-signed JWTs for licensing. Self-host instances require a valid license file to operate.
+CasePack Connected V1 separates one commercial entitlement from up to two
+key-bound deployment identities. The API image owns local licensing state and
+verifies EdDSA credentials against a pinned offline issuer trust set.
 
 ### Activation Flow
 
 ```
-Customer ─── purchase ──▶ Licensing Server
-   │                         │
-   │    activation email     │
-   │  (token + portal link)  │
-   ◀─────────────────────────┘
-   │
-   │    ./activate.sh
-   │    (token exchange)
-   │──────────────────────▶ POST /api/public/activate
-   │                         │
-   │    license.jwt +        │
-   │    installation ID      │
-   ◀─────────────────────────┘
-   │
-   │    docker compose up
-   └──▶ API loads license.jwt
+Cleared payment ──▶ entitlement family + active period
+                              │
+Portal admin ─────▶ one-time slot-bound enrollment code
+                              │
+API licensectl ───▶ challenge + Ed25519 proof
+                              │
+Licensing service ▶ installation + credential revision
+                              │
+API state volume ◀─ strictly verified key-bound credential
 ```
 
 ### Access State Lifecycle
 
-When a license expires, the self-host instance follows a degradation cascade:
+Connected local-state failure follows a data-custody floor:
 
 | State | Behavior | Trigger |
 |---|---|---|
-| `ACTIVE` | Full access | Valid, non-expired license |
-| `GRACE` | Full access + warning banner | Expired, within 7-day grace period |
-| `READ_ONLY_EXPIRED` | Read-only, no new data | Grace period exhausted, within 30 days |
-| `EXPORT_ONLY` | Export only, no reads | 30+ days past grace |
-| `SUSPENDED` | No access | Administrative suspension |
-| `TERMINATED` | No access | Permanent termination |
+| `SETUP` | Enrollment/diagnostics only | Database proven empty and no verified credential |
+| `ACTIVE` | Full access | Valid local Connected credential |
+| `RECOVERY_READ_EXPORT` | Authenticated reads and permitted exports; ordinary writes paused | Customer data exists or emptiness is uncertain and state is missing, corrupt, restored, expired, or untrusted |
 
 ### Renewal
 
-1. Renew subscription at the licensing portal
-2. Download new `license.jwt` or run `./renew-license.sh`
-3. Restart the API: `docker compose restart api`
+The API refreshes about every 24 hours with jitter. The pinned private runbook
+provides the immediate-refresh procedure through the same API image command mode.
+Refresh changes only the internal credential revision/head; it never creates a
+second entitlement, installation, or customer-visible license.
+
+The local state directory is `/var/lib/casepack/licensing` in the protected
+`licensing-state` volume. Back it up with PostgreSQL, object storage, and
+identity data. Redeploys must reuse it. A declared restore remains in
+`RECOVERY_READ_EXPORT` until a successful server reconciliation confirms the
+current installation and sequence.
+
+Credentials provide up to 30 days of continuity. This minimizes dependence on
+CasePack availability but delays guaranteed revocation and makes simultaneous
+copies of a complete software-key volume impossible to distinguish reliably.
+Connected V1 is not air-gapped and is not described as tamper-proof.
 
 ### PostgreSQL Init (Keycloak Database)
 

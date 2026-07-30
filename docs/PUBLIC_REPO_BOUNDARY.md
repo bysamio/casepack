@@ -4,16 +4,18 @@ This repository is intended to be the customer-cloneable CasePack self-host wrap
 
 ## Belongs Here
 
-- Customer quick starts for Docker Compose and Helm.
+- Customer quick starts only for deployment profiles that have passed their
+  Connected install/upgrade/rollback canary.
 - `.env.example` with placeholders and safe defaults.
-- Docker Compose and Helm chart wiring.
+- Docker Compose wiring and explicitly unsupported/demand-gated chart notes.
 - Public troubleshooting for install, login, object storage, license activation, and renewal.
 - Public architecture diagrams that explain required customer-operated components.
 - Security guidance customers need to operate the stack safely.
 
 ## Does Not Belong Here
 
-- Real activation tokens, license JWTs, refresh tokens, passwords, or customer data.
+- Real enrollment/recovery codes, license credentials, installation private
+  keys, passwords, or customer data.
 - Internal Stripe, licensing-server, or billing reconciliation runbooks.
 - Private support procedures, hidden SaaS super-admin operations, or debug playbooks.
 - Local workstation paths or private infrastructure details.
@@ -25,7 +27,9 @@ Move internal implementation plans, smoke-test notes, operator runbooks, and pri
 
 ## Release Checklist Before Making This Repo Public
 
-- Confirm `git status` contains no secret-bearing files such as `.env`, `.env.bak`, `license.jwt`, `activation.json`, or activation-token files.
+- Confirm `git status` contains no secret-bearing files such as `.env`,
+  `.env.bak`, enrollment/recovery-code files, copied credential JWTs, state
+  manifests, or installation private keys.
 - Review `docs/` and remove or relocate internal implementation notes.
 - Confirm `README.md`, `.env.example`, `docker-compose.yml`, and [casepack chart README](https://github.com/bysamio/charts/tree/main/casepack#readme) agree on ports, images, license activation, and S3 endpoint behavior.
 - Confirm images and charts referenced by the quick start are anonymously readable.

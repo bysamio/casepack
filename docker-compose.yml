@@ -1,8 +1,5 @@
-# CasePack — Self-Host Docker Compose Stack
-# Usage:
-#   1. Copy .env.example to .env and fill in your values
-#   2. Run ./activate.sh to activate your license
-#   3. docker compose up -d
+# CasePack — engineering-preview self-host Docker Compose stack.
+# Public operator commands remain gated on the signed compatibility canary.
 #
 # Default URLs:
 #   API:      http://localhost:8080
@@ -141,7 +138,7 @@ services:
 
   # ── CasePack API ───────────────────────────────────────────────
   api:
-    image: ghcr.io/bysamio/casepack-api:${CASEPACK_API_VERSION:-0.30.0}
+    image: ghcr.io/bysamio/casepack-api:${CASEPACK_API_VERSION:-0.31.0}
     restart: unless-stopped
     read_only: true
     ports:
@@ -170,17 +167,20 @@ services:
       S3_AUTO_CREATE_BUCKET: "true"
       CASEPACK_CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       GOTENBERG_URL: ${GOTENBERG_URL:-http://gotenberg:3000}
-      CASEPACK_LICENSE_TOKEN_FILE: /run/secrets/license.jwt
-      CASEPACK_LICENSE_KEY_SOURCE: ${CASEPACK_LICENSE_KEY_SOURCE:-env}
-      CASEPACK_LICENSE_PUBLIC_KEY: ${CASEPACK_LICENSE_PUBLIC_KEY:-}
-      CASEPACK_LICENSE_JWKS_URL: ${CASEPACK_LICENSE_JWKS_URL:-}
+      CASEPACK_CONNECTED_LICENSING_ENABLED: "true"
+      CASEPACK_LICENSING_BASE_URL: ${LICENSING_API_URL:-https://licensing.bysam.io}
+      CASEPACK_LICENSE_STATE_DIR: /var/lib/casepack/licensing
+      CASEPACK_LICENSE_KEY_SOURCE: env
+      CASEPACK_LICENSE_PUBLIC_KEY: ${CASEPACK_LICENSE_PUBLIC_KEY:?Set the Base64URL-encoded offline issuer JWK in .env}
+      CASEPACK_LICENSE_REFRESH_INTERVAL: PT24H
+      CASEPACK_LICENSE_REQUEST_TIMEOUT: PT15S
+      CASEPACK_DEPLOYMENT_PROFILE: compose-podman-single-api
+      CASEPACK_VERSION: ${CASEPACK_API_VERSION:-0.31.0}
       CASEPACK_DEPLOYMENT_MODE: ${CASEPACK_DEPLOYMENT_MODE:-self_host}
-      CASEPACK_INSTALLATION_ID: ${CASEPACK_INSTALLATION_ID:-}
-      CASEPACK_ACTIVATION_FILE: /run/secrets/activation.json
       CASEPACK_SELF_HOST_BOOTSTRAP_ENABLED: ${CASEPACK_SELF_HOST_BOOTSTRAP_ENABLED:-true}
       CASEPACK_SELF_HOST_BOOTSTRAP_TENANT_NAME: ${CASEPACK_SELF_HOST_BOOTSTRAP_TENANT_NAME:-CasePack Workspace}
-      CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_EMAIL: ${CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_EMAIL:-}
-      CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_INITIAL_PASSWORD: ${CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_INITIAL_PASSWORD:-}
+      CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_EMAIL: ${CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_EMAIL:?Set the first admin email in .env}
+      CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_INITIAL_PASSWORD: ${CASEPACK_SELF_HOST_BOOTSTRAP_ADMIN_INITIAL_PASSWORD:?Set the temporary first admin password in .env}
       CASEPACK_KEYCLOAK_BASE_URL: ${CASEPACK_KEYCLOAK_BASE_URL:-http://keycloak:8080}
       CASEPACK_KEYCLOAK_REALM: ${CASEPACK_KEYCLOAK_REALM:-casepack}
       CASEPACK_KEYCLOAK_SPA_CLIENT_ID: ${CASEPACK_KEYCLOAK_SPA_CLIENT_ID:-casepack-spa}
@@ -190,8 +190,7 @@ services:
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
       JAVA_OPTS: "${JAVA_OPTS:--Xms256m -Xmx512m}"
     volumes:
-      - ./license.jwt:/run/secrets/license.jwt:ro
-      - ./activation.json:/run/secrets/activation.json:ro
+      - licensing-state:/var/lib/casepack/licensing
     depends_on:
       postgres:
         condition: service_healthy
@@ -228,3 +227,4 @@ volumes:
   pgdata:
   seaweeddata:
   keycloak-themes:
+  licensing-state:
