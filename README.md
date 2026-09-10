@@ -96,7 +96,7 @@ preview does not claim air-gapped operation.
 | `DB_PASS` | Yes | PostgreSQL password |
 | `KC_DB_PASS` | Yes | Keycloak database password |
 | `KC_ADMIN_PASS` | Yes | Keycloak admin password |
-| `CASEPACK_API_VERSION` | No | API image tag (default: `0.31.0`) |
+| `CASEPACK_API_VERSION` | No | API image tag (default: `0.32.0`) |
 | `CORS_ORIGINS` | No | Allowed CORS origins (default: `http://localhost:3000`) |
 | `OIDC_ISSUER_URI` | No | Override for external Keycloak |
 | `S3_ENDPOINT` | No | Internal S3 endpoint used by the API (default: bundled SeaweedFS) |
