@@ -203,7 +203,7 @@ services:
 
   # ── CasePack SPA ────────────────────────────────────────────────
   spa:
-    image: ghcr.io/bysamio/casepack-spa:${CASEPACK_SPA_VERSION:-0.29.0}
+    image: ghcr.io/bysamio/casepack-spa:${CASEPACK_SPA_VERSION:-0.33.0}
     restart: unless-stopped
     ports:
       - "${SPA_PORT:-3000}:8080"
