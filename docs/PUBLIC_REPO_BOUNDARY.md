@@ -31,6 +31,6 @@ Move internal implementation plans, smoke-test notes, operator runbooks, and pri
   `.env.bak`, enrollment/recovery-code files, copied credential JWTs, state
   manifests, or installation private keys.
 - Review `docs/` and remove or relocate internal implementation notes.
-- Confirm `README.md`, `.env.example`, `docker-compose.yml`, and [casepack chart README](https://github.com/bysamio/charts/tree/main/casepack#readme) agree on ports, images, license activation, and S3 endpoint behavior.
+- Confirm `README.md`, `.env.example`, `docker-compose.yml`, and [casepack chart README](https://github.com/sammyeby/charts/tree/main/casepack#readme) agree on ports, images, license activation, and S3 endpoint behavior.
 - Confirm images and charts referenced by the quick start are anonymously readable.
-- Run `helm lint casepack` in the `bysamio/charts` repo and a clean Docker Compose smoke test.
+- Run `helm lint casepack` in the `sammyeby/charts` repo and a clean Docker Compose smoke test.
