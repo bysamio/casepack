@@ -160,7 +160,7 @@ customer profile. These values are retained for future engineering work:
 | `casepack-api.ingress.enabled` | Enable API Ingress (`false`) |
 | `casepack-api.secrets.existingSecret` | Use pre-created K8s Secret |
 
-See [casepack chart README](https://github.com/bysamio/charts/tree/main/casepack#readme) for full parameter tables.
+See [casepack chart README](https://github.com/sammyeby/charts/tree/main/casepack#readme) for full parameter tables.
 
 ## Licensing
 
@@ -193,19 +193,19 @@ See [bysam.io](https://bysam.io) for licensing plans and pricing.
 
 ## Standalone Charts (Not Part of the Connected Preview)
 
-Charts may exist in the `bysamio` repository, but their presence is not a
+Charts may exist in the `sammyeby` repository, but their presence is not a
 support or compatibility promise for Connected licensing. Repository and
 installation commands stay unpublished until Helm passes its separate
 supportability gate.
 
 | Component | Chart Name |
 |---|---|
-| CasePack API | `bysamio/casepack-api` |
-| CasePack SPA | `bysamio/casepack-spa` |
-| Keycloak | `bysamio/keycloak` |
-| Gotenberg | `bysamio/gotenberg` |
+| CasePack API | `sammyeby/casepack-api` |
+| CasePack SPA | `sammyeby/casepack-spa` |
+| Keycloak | `sammyeby/keycloak` |
+| Gotenberg | `sammyeby/gotenberg` |
 | SeaweedFS | `seaweedfs/seaweedfs` |
-| PostgreSQL | `bysamio/postgresql` |
+| PostgreSQL | `sammyeby/postgresql` |
 
 ## Documentation
 
@@ -213,8 +213,8 @@ supportability gate.
 |---|---|
 | Official Documentation | [CasePack Docs](https://docs.casepack.app) |
 | Deployment Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Helm Chart Reference | [casepack chart README](https://github.com/bysamio/charts/tree/main/casepack#readme) |
-| BySamio Charts | [bysamio/charts](https://github.com/bysamio/charts) |
+| Helm Chart Reference | [casepack chart README](https://github.com/sammyeby/charts/tree/main/casepack#readme) |
+| SamSoft Charts | [sammyeby/charts](https://github.com/sammyeby/charts) |
 
 ## License
 

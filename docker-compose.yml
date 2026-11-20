@@ -12,7 +12,7 @@ services:
 
   # ── PostgreSQL ──────────────────────────────────────────────────
   postgres:
-    image: ghcr.io/bysamio/postgresql:17.7-alpine
+    image: ghcr.io/sammyeby/postgresql:17.7-alpine
     restart: unless-stopped
     ports:
       - "${DB_PORT:-5432}:5432"
@@ -36,7 +36,7 @@ services:
 
   # ── Keycloak ────────────────────────────────────────────────────
   keycloak-theme:
-    image: ghcr.io/bysamio/keycloak-themes:0.5.0
+    image: ghcr.io/sammyeby/keycloak-themes:0.5.0
     command: ["sh", "-c", "rm -rf /target/casepack && cp -r /themes/casepack /target/"]
     restart: "no"
     volumes:
@@ -45,7 +45,7 @@ services:
       - no-new-privileges:true
 
   keycloak:
-    image: ghcr.io/bysamio/keycloak:26.7.0-optimized
+    image: ghcr.io/sammyeby/keycloak:26.7.0-optimized
     command: start --optimized --import-realm --http-port=8080
     restart: unless-stopped
     ports:
@@ -138,7 +138,7 @@ services:
 
   # ── CasePack API ───────────────────────────────────────────────
   api:
-    image: ghcr.io/bysamio/casepack-api:${CASEPACK_API_VERSION:-0.34.0}
+    image: ghcr.io/sammyeby/casepack-api:${CASEPACK_API_VERSION:-0.34.0}
     restart: unless-stopped
     read_only: true
     ports:
@@ -203,7 +203,7 @@ services:
 
   # ── CasePack SPA ────────────────────────────────────────────────
   spa:
-    image: ghcr.io/bysamio/casepack-spa:${CASEPACK_SPA_VERSION:-0.34.0}
+    image: ghcr.io/sammyeby/casepack-spa:${CASEPACK_SPA_VERSION:-0.34.0}
     restart: unless-stopped
     ports:
       - "${SPA_PORT:-3000}:8080"
